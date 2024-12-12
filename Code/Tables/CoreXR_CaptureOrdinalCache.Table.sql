@@ -1,43 +1,43 @@
-/*
-   Copyright 2016, 2024 Aaron Morelli
-
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
-
-       http://www.apache.org/licenses/LICENSE-2.0
-
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
-
-	------------------------------------------------------------------------
-
-	PROJECT NAME: ChiRho for SQL Server https://github.com/AaronMorelli/ChiRho_SQL
-
-	PROJECT DESCRIPTION: A T-SQL toolkit for troubleshooting performance and stability problems on SQL Server instances
-
-	FILE NAME: CoreXR_CaptureOrdinalCache.Table.sql
-
-	TABLE NAME: CoreXR_CaptureOrdinalCache
-
-	AUTHOR:			Aaron Morelli
-					aaronmorelli@zoho.com
-					@sqlcrossjoin
-					sqlcrossjoin.wordpress.com
-
-	PURPOSE: Holds a list of capture times (e.g. for captures by the AutoWho or ServerEye components)
-	and each capture time's order number (both ascending and descending) within the overall range. The
-	front-end UI procs populate this table when requested by a user call, for a given start/end range,
-	and then refer to it as they iterate over the capture times.
-*/
+/*****
+*****   Copyright 2016, 2024 Aaron Morelli
+*****
+*****   Licensed under the Apache License, Version 2.0 (the "License");
+*****   you may not use this file except in compliance with the License.
+*****   You may obtain a copy of the License at
+*****
+*****       http://www.apache.org/licenses/LICENSE-2.0
+*****
+*****   Unless required by applicable law or agreed to in writing, software
+*****   distributed under the License is distributed on an "AS IS" BASIS,
+*****   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+*****   See the License for the specific language governing permissions and
+*****   limitations under the License.
+*****
+*****	------------------------------------------------------------------------
+*****
+*****	PROJECT NAME: ChiRho for SQL Server https://github.com/AaronMorelli/ChiRho_SQL
+*****
+*****	PROJECT DESCRIPTION: A T-SQL toolkit for troubleshooting performance and stability problems on SQL Server instances
+*****
+*****	FILE NAME: CoreXR_CaptureOrdinalCache.Table.sql
+*****
+*****	TABLE NAME: CoreXR_CaptureOrdinalCache
+*****
+*****	AUTHOR:			Aaron Morelli
+*****					aaronmorelli@zoho.com
+*****					@sqlcrossjoin
+*****					sqlcrossjoin.wordpress.com
+*****
+*****	PURPOSE: Holds a list of capture times (e.g. for captures by the AutoWho or ServerEye components)
+*****	and each capture time's order number (both ascending and descending) within the overall range. The
+*****	front-end UI procs populate this table when requested by a user call, for a given start/end range,
+*****	and then refer to it as they iterate over the capture times.
+***** */
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-CREATE TABLE @@CHIRHO_SCHEMA@@.CoreXR_CaptureOrdinalCache(
+CREATE TABLE @@CHIRHO_SCHEMA_OBJECTS@@.CoreXR_CaptureOrdinalCache(
 	[Utility] [nvarchar](30) NOT NULL,
 	[CollectionInitiatorID] [tinyint] NOT NULL,
 	[StartTime] [datetime] NOT NULL,		--We don't have UTC versions of these 2 time fields because we expect the user
@@ -62,7 +62,7 @@ CREATE TABLE @@CHIRHO_SCHEMA@@.CoreXR_CaptureOrdinalCache(
 ) ON [PRIMARY]
 
 GO
-CREATE UNIQUE NONCLUSTERED INDEX [UNCL_OrdinalNegative] ON @@CHIRHO_SCHEMA@@.CoreXR_CaptureOrdinalCache
+CREATE UNIQUE NONCLUSTERED INDEX [UNCL_OrdinalNegative] ON @@CHIRHO_SCHEMA_OBJECTS@@.CoreXR_CaptureOrdinalCache
 (
 	[Utility] ASC,
 	[CollectionInitiatorID] ASC,
@@ -76,7 +76,7 @@ INCLUDE ( 	[Ordinal],
 	[TimePopulated]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, 
 		IGNORE_DUP_KEY = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
 GO
-ALTER TABLE @@CHIRHO_SCHEMA@@.CoreXR_CaptureOrdinalCache ADD  CONSTRAINT [DF_CoreXR_CaptureOrdinalCache_TimePopulated]  DEFAULT (GETDATE()) FOR [TimePopulated]
+ALTER TABLE @@CHIRHO_SCHEMA_OBJECTS@@.CoreXR_CaptureOrdinalCache ADD  CONSTRAINT [DF_CoreXR_CaptureOrdinalCache_TimePopulated]  DEFAULT (GETDATE()) FOR [TimePopulated]
 GO
-ALTER TABLE @@CHIRHO_SCHEMA@@.CoreXR_CaptureOrdinalCache ADD  CONSTRAINT [DF_CoreXR_CaptureOrdinalCache_TimePopulatedUTC]  DEFAULT (GETUTCDATE()) FOR [TimePopulatedUTC]
+ALTER TABLE @@CHIRHO_SCHEMA_OBJECTS@@.CoreXR_CaptureOrdinalCache ADD  CONSTRAINT [DF_CoreXR_CaptureOrdinalCache_TimePopulatedUTC]  DEFAULT (GETUTCDATE()) FOR [TimePopulatedUTC]
 GO

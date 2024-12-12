@@ -19,32 +19,27 @@
 *****
 *****	PROJECT DESCRIPTION: A T-SQL toolkit for troubleshooting performance and stability problems on SQL Server instances
 *****
-*****	FILE NAME: CoreXR_CollectionInitiators.Table.sql
+*****	FILE NAME: CoreXR_trgDEL_CoreXR_InstallationConfig.sql
 *****
-*****	TABLE NAME: CoreXR_CollectionInitiators
+*****	TRIGGER NAME: CoreXR_trgDEL_CoreXR_InstallationConfig
 *****
 *****	AUTHOR:			Aaron Morelli
 *****					aaronmorelli@zoho.com
 *****					@sqlcrossjoin
 *****					sqlcrossjoin.wordpress.com
 *****
-*****	PURPOSE: A simple lookup table mapping the IDs used for various "sections of code that trigger
-*****		the collection of data". The ID is used in a number of tables, e.g. the AutoWho data collection
-*****		tables, and allows the users of various sp_XR_* procs to choose whether they are reviewing 
-*****		data captured by the standard AutoWho or ServerEye traces, or special "one-off" traces triggered
-*****		through the sp_XR_* procs themselves.
+*****	PURPOSE: Maintains the CoreXR_InstallationConfig_History table
 ***** */
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-CREATE TABLE @@CHIRHO_SCHEMA_OBJECTS@@.CoreXR_CollectionInitiators(
-	[CollectionInitiatorID] [tinyint] NOT NULL,
-	[CollectionInitiator] [nvarchar](100) NOT NULL,
- CONSTRAINT [PKCollectionInitiators] PRIMARY KEY CLUSTERED 
-(
-	[CollectionInitiatorID] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
-
-) ON [PRIMARY]
+CREATE TRIGGER @@CHIRHO_SCHEMA_OBJECTS@@.CoreXR_trgDEL_CoreXR_InstallationConfig ON @@CHIRHO_SCHEMA_OBJECTS@@.CoreXR_InstallationConfig
+FOR DELETE
+AS
+BEGIN
+    --We don't allow deletes.
+    RAISERROR('Deletes on the CoreXR_InstallationConfig table are forbidden.',10,1);
+    ROLLBACK TRANSACTION;
+END
 GO

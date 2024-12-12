@@ -19,32 +19,34 @@
 *****
 *****	PROJECT DESCRIPTION: A T-SQL toolkit for troubleshooting performance and stability problems on SQL Server instances
 *****
-*****	FILE NAME: CoreXR_CollectionInitiators.Table.sql
+*****	FILE NAME: CoreXR_InstallationConfig_History.Table.sql
 *****
-*****	TABLE NAME: CoreXR_CollectionInitiators
+*****	TABLE NAME: CoreXR_InstallationConfig_History
 *****
 *****	AUTHOR:			Aaron Morelli
 *****					aaronmorelli@zoho.com
 *****					@sqlcrossjoin
 *****					sqlcrossjoin.wordpress.com
 *****
-*****	PURPOSE: A simple lookup table mapping the IDs used for various "sections of code that trigger
-*****		the collection of data". The ID is used in a number of tables, e.g. the AutoWho data collection
-*****		tables, and allows the users of various sp_XR_* procs to choose whether they are reviewing 
-*****		data captured by the standard AutoWho or ServerEye traces, or special "one-off" traces triggered
-*****		through the sp_XR_* procs themselves.
+*****	PURPOSE: Tracks any changes made to the CoreXR_InstallationConfig table via triggers
 ***** */
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-CREATE TABLE @@CHIRHO_SCHEMA_OBJECTS@@.CoreXR_CollectionInitiators(
-	[CollectionInitiatorID] [tinyint] NOT NULL,
-	[CollectionInitiator] [nvarchar](100) NOT NULL,
- CONSTRAINT [PKCollectionInitiators] PRIMARY KEY CLUSTERED 
-(
-	[CollectionInitiatorID] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
-
+CREATE TABLE @@CHIRHO_SCHEMA_OBJECTS@@.CoreXR_InstallationConfig_History(
+	[EngineType]        [nvarchar](60) NOT NULL,
+	[EditionFeatures]   [nvarchar](60) NOT NULL,
+	[SQLVersion]        [nvarchar](30) NOT NULL,
+	[SQLTimeZone]       [nvarchar](60) NOT NULL,
+	[DBNameObjects]     sysname NOT NULL,
+	[SchemaNameObjects] sysname NOT NULL,
+	[DBNameEndUser]     sysname NOT NULL,
+	[SchemaNameEndUser] sysname NOT NULL,
+	[InstallDate]       [datetime] NOT NULL,
+	[InstallDateUTC]    [datetime] NOT NULL,
+	[TriggerAction] 	[nvarchar](20) NOT NULL,
+	[TriggerActionTime] [datetime] NOT NULL,
+	[TriggerActionTimeUTC] [datetime] NOT NULL
 ) ON [PRIMARY]
 GO

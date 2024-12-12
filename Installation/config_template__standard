@@ -1,0 +1,57 @@
+# ChiRho Configuration Template for traditional SQL Servers (on-prem, in a virtual machine, etc)
+# 
+# Perform these steps:
+#   1. Make a copy of this file and name it "Installation\config".
+#   2. Modify the values (if needed). You can use the SQL query down below to obtain the correct values for your environment.
+#   3. Save this file.
+#   4. Run the generator script (either Powershell or Python, depending on what is available) in order to create the
+#       installation .sql files that are appropriate to your installation needs.
+
+sql_engine_edition = 3                           # The output of SELECT SERVERPROPERTY('EngineEdition');
+sql_edition = "Developer Edition (64-bit)"       # The output of SELECT SERVERPROPERTY('Edition');
+product_major_version = 15                       # The output of SELECT SERVERPROPERTY('ProductMajorVersion')
+product_minor_version = 0                       # The output of SELECT SERVERPROPERTY('ProductMinorVersion')
+sql_time_zone = "Pacific Standard Time"          # The time zone of your SQL Server instance; should be a value from sys.time_zone_info; see notes below
+                                                 # NOTE that the time zone names in this view do NOT have the daylight-equivalent, such as Pacific Daylight Time
+install_in_tempdb = No      # should be Yes or No; if Yes, configures scripts so that all objects are global temp tables / global temp procs.
+chirho_db_name = XR         # This is ignored if install_in_tempdb is set to 'Yes'; This DB should already exist in your target instance
+chirho_schema_name = dbo    # This is ignored if install_in_tempdb is set to 'Yes'
+install_procs_in_master = Yes    # If Yes, installs the end-user-facing "sp_XR" procs in master. If No, installs into the same DB
+                                  # where the ChiRho tables and internal procedures are installed (e.g. TempDB or the DB in "chirho_db_name")
+                                  # If the instance is Azure SQL DB or AWS RDS, the procs will be installed in the ChiRho database instead.
+is_aws_rds = No             # should be Yes or No
+include_license = No        # should be Yes or No; If Yes, then the license text is included in the install scripts; otherwise, it is omitted.
+
+
+# The below query can be run to obtain the correct values for the config options above.
+# SELECT 
+# 	CONVERT(INT, SERVERPROPERTY('EngineEdition')) as sql_engine_edition,
+# 	CONVERT(VARCHAR(40), SERVERPROPERTY('Edition')) as sql_edition,
+# 	CONVERT(INT, SERVERPROPERTY('ProductMajorVersion')) as product_major_version,
+# 	CONVERT(INT, SERVERPROPERTY('ProductMinorVersion')) as product_minor_version,
+#     CASE WHEN DB_ID('XR') IS NOT NULL
+#         THEN 'Y'
+#         ELSE 'N'
+#     END as xr_db_exists,
+# 	CASE WHEN DB_ID('tempdb') IS NOT NULL
+# 		THEN 'Y'
+# 		ELSE 'N'
+# 	END as tempdb_is_visible,
+# 	CASE WHEN DB_ID('rdsadmin') IS NOT NULL
+# 		AND SERVERPROPERTY('EngineEdition') IN (2, 3)
+# 		THEN 'Y'
+# 		ELSE 'N'
+# 	END as is_aws_rds
+
+# The below queries can be used to determine the timezone that your SQL instance is configured to.
+# Method #1:    WARNING, this is only on SQL 2022 and newer, and in Azure, and it uses a different format than sys.time_zone_info
+#   select current_timezone();
+#               THEREFORE, use this function only to view the time zone, then cross-reference it with sys.time_zone_info to
+#               find the correct time zone text.
+#
+# Method #2:    Read the Windows registry; this should work for pre-SQL 2022 instances, but will not work for Azure or AWS RDS
+# DECLARE @TimeZone VARCHAR(50)
+# EXEC MASTER.dbo.xp_regread 'HKEY_LOCAL_MACHINE',
+# 'SYSTEM\CurrentControlSet\Control\TimeZoneInformation',
+# 'TimeZoneKeyName',@TimeZone OUT
+# SELECT @TimeZone;

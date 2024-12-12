@@ -1,44 +1,46 @@
+/*****
+*****   Copyright 2016, 2024 Aaron Morelli
+*****
+*****   Licensed under the Apache License, Version 2.0 (the "License");
+*****   you may not use this file except in compliance with the License.
+*****   You may obtain a copy of the License at
+*****
+*****       http://www.apache.org/licenses/LICENSE-2.0
+*****
+*****   Unless required by applicable law or agreed to in writing, software
+*****   distributed under the License is distributed on an "AS IS" BASIS,
+*****   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+*****   See the License for the specific language governing permissions and
+*****   limitations under the License.
+*****
+*****	------------------------------------------------------------------------
+*****
+*****	PROJECT NAME: ChiRho for SQL Server https://github.com/AaronMorelli/ChiRho_SQL
+*****
+*****	PROJECT DESCRIPTION: A T-SQL toolkit for troubleshooting performance and stability problems on SQL Server instances
+*****
+*****	FILE NAME: CoreXR_TraceTimeInfo.StoredProcedure.sql
+*****
+*****	PROCEDURE NAME: CoreXR_TraceTimeInfo
+*****
+*****	AUTHOR:			Aaron Morelli
+*****					aaronmorelli@zoho.com
+*****					@sqlcrossjoin
+*****					sqlcrossjoin.wordpress.com
+*****
+*****	PURPOSE: Given a point in time in UTC (usually executed with the current time), finds the earliest start time and end time in UTC
+*****	where the point in time is between (inclusive) the start and end, i.e. when the trace should be running.
+*****	That "earliest" time includes start/end times when the point-in-time is after the start and before the end, which basically
+*****	means "the trace should be running now". Consumers can use this both to determine whether the trace should be running now,
+*****	and if so, what the end time should be.
+***** */
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-CREATE PROCEDURE @@CHIRHO_SCHEMA@@.CoreXR_TraceTimeInfo
-/*   
-   Copyright 2016, 2024 Aaron Morelli
+CREATE PROCEDURE @@CHIRHO_SCHEMA_OBJECTS@@.CoreXR_TraceTimeInfo
 
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
-
-       http://www.apache.org/licenses/LICENSE-2.0
-
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
-
-	------------------------------------------------------------------------
-
-	PROJECT NAME: ChiRho for SQL Server https://github.com/AaronMorelli/ChiRho_SQL
-
-	PROJECT DESCRIPTION: A T-SQL toolkit for troubleshooting performance and stability problems on SQL Server instances
-
-	FILE NAME: CoreXR_TraceTimeInfo.StoredProcedure.sql
-
-	PROCEDURE NAME: CoreXR_TraceTimeInfo
-
-	AUTHOR:			Aaron Morelli
-					aaronmorelli@zoho.com
-					@sqlcrossjoin
-					sqlcrossjoin.wordpress.com
-
-	PURPOSE: Given a point in time in UTC (usually executed with the current time), finds the earliest start time and end time in UTC
-	where the point in time is between (inclusive) the start and end, i.e. when the trace should be running.
-	That "earliest" time includes start/end times whene point-in-time is after the start and before the end, which basically
-	means "the trace should be running now". Consumers can use this both to determine whether the trace should be running now,
-	and if so, what the end time should be.
-
+/*
 	OUTSTANDING ISSUES: None at this time
 
 To Execute
@@ -49,8 +51,11 @@ DECLARE @rc INT,
 	@st DATETIME, 
 	@nd DATETIME
 
-EXEC @rc = @@CHIRHO_SCHEMA@@.CoreXR_TraceTimeInfo @Utility=N'AutoWho', @PointInTimeUTC = @pit, @UtilityIsEnabled = @en OUTPUT, 
-		@UtilityStartTimeUTC = @st OUTPUT, @UtilityEndTimeUTC = @nd OUTPUT
+EXEC @rc = @@CHIRHO_SCHEMA_OBJECTS@@.CoreXR_TraceTimeInfo @Utility=N'AutoWho', 
+	@PointInTimeUTC = @pit, 
+	@UtilityIsEnabled = @en OUTPUT, 
+	@UtilityStartTimeUTC = @st OUTPUT, 
+	@UtilityEndTimeUTC = @nd OUTPUT
 
 SELECT @rc as ProcRC, @en as Enabled, @st as StartTime, @nd as EndTime
 */
@@ -87,13 +92,14 @@ BEGIN
 		SET @PointInTimeUTC = GETUTCDATE();
 	END
 
-	IF @Utility NOT IN (N'AutoWho', N'ServerEye')
+	IF UPPER(ISNULL(@Utility,N'null')) NOT IN ('AUTOWHO', 'SERVEREYE')
 	BEGIN
-		RAISERROR('Parameter @Utility must be in the following list: AutoWho, ServerEye', 16, 1);
+		RAISERROR('Parameter @Utility must be one of the following: AutoWho, ServerEye.',16,1);
 		RETURN -1;
 	END
 
-	SET @UTCDiffMinutesFromLocalTime = DATEDIFF(MINUTE,GETDATE(), GETUTCDATE());	--use minutes, not hours, b/c of time zones that are 30 minutes shifted.
+	SET @UTCDiffMinutesFromLocalTime = DATEDIFF(MINUTE,GETDATE(), GETUTCDATE());
+		--use minutes, not hours, b/c of time zones that are 30 minutes shifted.
 
 	IF @Utility = N'AutoWho'
 	BEGIN
@@ -102,8 +108,9 @@ BEGIN
 			@opt__BeginTime			 = [BeginTime],
 			@opt__EndTime			 = [EndTime],
 			@opt__BeginEndIsUTC		 = [BeginEndIsUTC]
-		FROM @@CHIRHO_SCHEMA@@.AutoWho_Options o;
+		FROM @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_Options o;
 	END
+	/* Commenting out until ServerEye is integrated into this new repo
 	ELSE IF @Utility = N'ServerEye'
 	BEGIN
 		SELECT 
@@ -111,8 +118,9 @@ BEGIN
 			@opt__BeginTime			 = [BeginTime],
 			@opt__EndTime			 = [EndTime],
 			@opt__BeginEndIsUTC		 = [BeginEndIsUTC]
-		FROM @@CHIRHO_SCHEMA@@.ServerEye_Options o;
+		FROM @@CHIRHO_SCHEMA_OBJECTS@@.ServerEye_Options o;
 	END
+	*/
 
 	--First, check to see if the begin/end options are UTC or local. If local, convert to UTC.
 	--The logic below works because the TIME data type wraps. E.g. if you pass in '20:00' and add 7 hours, you get 03:00

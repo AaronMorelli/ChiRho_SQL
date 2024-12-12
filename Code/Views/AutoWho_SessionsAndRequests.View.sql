@@ -1,37 +1,37 @@
+/*****
+*****   Copyright 2016, 2024 Aaron Morelli
+*****
+*****   Licensed under the Apache License, Version 2.0 (the "License");
+*****   you may not use this file except in compliance with the License.
+*****   You may obtain a copy of the License at
+*****
+*****       http://www.apache.org/licenses/LICENSE-2.0
+*****
+*****   Unless required by applicable law or agreed to in writing, software
+*****   distributed under the License is distributed on an "AS IS" BASIS,
+*****   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+*****   See the License for the specific language governing permissions and
+*****   limitations under the License.
+*****
+*****	FILE NAME: CoreXR_SessionsAndRequests.View.sql
+*****
+*****	VIEW NAME: CoreXR_SessionsAndRequests
+*****
+*****	AUTHOR:			Aaron Morelli
+*****					aaronmorelli@zoho.com
+*****					@sqlcrossjoin
+*****					sqlcrossjoin.wordpress.com
+*****					https://github.com/AaronMorelli/ChiRho
+*****
+*****	PURPOSE: Joins data from underlying SAR table + its Dims. Useful during debugging or ad-hoc analysis
+***** */
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
 CREATE VIEW [CoreXR].[SessionsAndRequests] AS
-/*   
-   Copyright 2016, 2024 Aaron Morelli
-
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
-
-       http://www.apache.org/licenses/LICENSE-2.0
-
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
-
-	FILE NAME: CoreXR_SessionsAndRequests.View.sql
-
-	VIEW NAME: CoreXR_SessionsAndRequests
-
-	AUTHOR:			Aaron Morelli
-					aaronmorelli@zoho.com
-					@sqlcrossjoin
-					sqlcrossjoin.wordpress.com
-					https://github.com/AaronMorelli/ChiRho
-
-	PURPOSE: Joins data from underlying SAR table + its Dims. Useful during debugging or ad-hoc analysis
-
+/*
 	OUTSTANDING ISSUES: None at this time.
-
 */
 SELECT SPIDCaptureTime, 
 	session_id, 
@@ -93,17 +93,17 @@ SELECT SPIDCaptureTime,
 	mgrant__request_time, mgrant__grant_time, mgrant__requested_memory_kb, mgrant__required_memory_kb, 
 	mgrant__used_memory_kb, mgrant__max_used_memory_kb, mgrant__dop, calc__record_priority,  
 	calc__block_relevant, calc__return_to_user,  calc__sysspid_isinteresting
-FROM @@CHIRHO_SCHEMA@@.AutoWho_SessionsAndRequests sar
-	LEFT OUTER JOIN @@CHIRHO_SCHEMA@@.AutoWho_DimCommand dc
+FROM @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_SessionsAndRequests sar
+	LEFT OUTER JOIN @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimCommand dc
 		ON sar.rqst__FKDimCommand = dc.DimCommandID
-	LEFT OUTER JOIN @@CHIRHO_SCHEMA@@.AutoWho_DimConnectionAttribute dca
+	LEFT OUTER JOIN @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimConnectionAttribute dca
 		ON sar.conn__FKDimConnectionAttribute = dca.DimConnectionAttributeID
-	LEFT OUTER JOIN @@CHIRHO_SCHEMA@@.AutoWho_DimLoginName dln
+	LEFT OUTER JOIN @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimLoginName dln
 		ON sar.sess__FKDimLoginName = dln.DimLoginNameID
-	LEFT OUTER JOIN @@CHIRHO_SCHEMA@@.AutoWho_DimNetAddress dna
+	LEFT OUTER JOIN @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimNetAddress dna
 		ON sar.conn__FKDimNetAddress = dna.DimNetAddressID
-	LEFT OUTER JOIN @@CHIRHO_SCHEMA@@.AutoWho_DimSessionAttribute dsa
+	LEFT OUTER JOIN @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimSessionAttribute dsa
 		ON sar.sess__FKDimSessionAttribute = dsa.DimSessionAttributeID
-	LEFT OUTER JOIN @@CHIRHO_SCHEMA@@.AutoWho_DimWaitType dwt
+	LEFT OUTER JOIN @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimWaitType dwt
 		ON sar.rqst__FKDimWaitType = dwt.DimWaitTypeID
 GO
