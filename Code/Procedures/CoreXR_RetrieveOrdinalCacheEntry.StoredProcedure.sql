@@ -1,42 +1,43 @@
+/*****
+*****   Copyright 2016, 2024 Aaron Morelli
+*****
+*****   Licensed under the Apache License, Version 2.0 (the "License");
+*****   you may not use this file except in compliance with the License.
+*****   You may obtain a copy of the License at
+*****
+*****       http://www.apache.org/licenses/LICENSE-2.0
+*****
+*****   Unless required by applicable law or agreed to in writing, software
+*****   distributed under the License is distributed on an "AS IS" BASIS,
+*****   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+*****   See the License for the specific language governing permissions and
+*****   limitations under the License.
+*****
+*****	------------------------------------------------------------------------
+*****
+*****	PROJECT NAME: ChiRho for SQL Server https://github.com/AaronMorelli/ChiRho_SQL
+*****
+*****	PROJECT DESCRIPTION: A T-SQL toolkit for troubleshooting performance and stability problems on SQL Server instances
+*****
+*****	FILE NAME: CoreXR_RetrieveOrdinalCacheEntry.StoredProcedure.sql
+*****
+*****	PROCEDURE NAME: CoreXR_RetrieveOrdinalCacheEntry
+*****
+*****	AUTHOR:			Aaron Morelli
+*****					aaronmorelli@zoho.com
+*****					@sqlcrossjoin
+*****					sqlcrossjoin.wordpress.com
+*****
+*****	PURPOSE: For a given utility (@ut), and a start/end range (@st/@et), and an ordinal in that range (@ord),
+*****		finds the historical Capture Time (@hct) and the related UTC time that corresponds to that ordinal. The first time 
+*****		that a @st/@et pair (e.g. "2016-04-24 09:00", "2016-04-24 09:30") is passed into this proc, a new cache is built.
+***** */
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-CREATE PROCEDURE @@CHIRHO_SCHEMA@@.CoreXR_RetrieveOrdinalCacheEntry
-/*   
-   Copyright 2016, 2024 Aaron Morelli
-
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
-
-       http://www.apache.org/licenses/LICENSE-2.0
-
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
-
-	------------------------------------------------------------------------
-
-	PROJECT NAME: ChiRho for SQL Server https://github.com/AaronMorelli/ChiRho_SQL
-
-	PROJECT DESCRIPTION: A T-SQL toolkit for troubleshooting performance and stability problems on SQL Server instances
-
-	FILE NAME: CoreXR_RetrieveOrdinalCacheEntry.StoredProcedure.sql
-
-	PROCEDURE NAME: CoreXR_RetrieveOrdinalCacheEntry
-
-	AUTHOR:			Aaron Morelli
-					aaronmorelli@zoho.com
-					@sqlcrossjoin
-					sqlcrossjoin.wordpress.com
-
-	PURPOSE: For a given utility (@ut), and a start/end range (@st/@et), and an ordinal in that range (@ord),
-		finds the historical Capture Time (@hct) and the related UTC time that corresponds to that ordinal. The first time 
-		that a @st/@et pair (e.g. "2016-04-24 09:00", "2016-04-24 09:30") is passed into this proc, a new cache is built.
-
+CREATE PROCEDURE @@CHIRHO_SCHEMA_OBJECTS@@.CoreXR_RetrieveOrdinalCacheEntry
+/*
 
 		This proc has 3 ways of ending:
 			1. Finds the @hct/@hctUTC successfully and returns 0
@@ -52,7 +53,7 @@ To Execute
 ------------------------
 DECLARE @hct DATETIME, @hctUTC DATETIME, @msg NVARCHAR(MAX);
 
-EXEC @@CHIRHO_SCHEMA@@.CoreXR_RetrieveOrdinalCacheEntry @ut=N'sp_XR_SessionViewer', @init=255, @st='2017-11-06 10:46', @et='2017-11-06 16:00', @ord=33, 
+EXEC @@CHIRHO_SCHEMA_OBJECTS@@.CoreXR_RetrieveOrdinalCacheEntry @ut=N'sp_XR_SessionViewer', @init=255, @st='2017-11-06 10:46', @et='2017-11-06 16:00', @ord=33, 
 	@hct = @hct OUTPUT, @hctUTC = @hctUTC OUTPUT, @msg = @msg OUTPUT;
 */
 (
@@ -76,11 +77,11 @@ BEGIN
 		StartTime/EndTime pair. (Pairs can overlap each other). In a pair, both the StartTime & EndTime must 
 		be in the past when the cache is first requested.
 
-		When a cache doesn't exist, the @@CHIRHO_SCHEMA@@.AutoWho_CaptureTimes table is first queried to determine whether 
+		When a cache doesn't exist, the @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_CaptureTimes table is first queried to determine whether 
 		there is any AutoWho capture data with "CaptureSummaryPopulated=0" for the time range specified by
 		the @st and @et parameters to this procedure. If so, this means that while
 		the various detail tables have data, the CaptureSummary table hasn't yet been populated for those
-		capture times. Thus, this triggers a call to @@CHIRHO_SCHEMA@@.AutoWho_PopulateCaptureSummary to do the population
+		capture times. Thus, this triggers a call to @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_PopulateCaptureSummary to do the population
 		for the time range of @st/@et. 
 
 		The actual ordinal cache is then created for @st/@et from the data in the CaptureSummary table. 
@@ -93,7 +94,7 @@ BEGIN
 		the very oldest record in the CaptureTimes table, we let the user know that there is no data.
 
 		NOTE: a late addition is the concept of the CollectionInitiatorID, which partitions the data based
-		on which part of ChiRho called @@CHIRHO_SCHEMA@@.AutoWho_Collector. If the standard background trace (e.g. @@CHIRHO_SCHEMA@@.AutoWho_Executor)
+		on which part of ChiRho called @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_Collector. If the standard background trace (e.g. @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_Executor)
 		calls the collector, the CollectionInitiatorID is 255. If collection occurs as part of a user manually
 		using sp_XR_SessionViewer, the ID is 1. (And for sp_XR_QueryProgress, the ID is 2). 
 		This division by initiator allows functionality like one-off traces that can then be reviewed
@@ -126,7 +127,7 @@ BEGIN
 			SELECT 
 				@hct = c.CaptureTime,
 				@hctUTC = c.CaptureTimeUTC
-			FROM @@CHIRHO_SCHEMA@@.CoreXR_CaptureOrdinalCache c
+			FROM @@CHIRHO_SCHEMA_OBJECTS@@.CoreXR_CaptureOrdinalCache c
 			WHERE c.Utility = @ut
 			AND c.CollectionInitiatorID = @init
 			AND c.StartTime = @st
@@ -139,7 +140,7 @@ BEGIN
 			SELECT 
 				@hct = c.CaptureTime,
 				@hctUTC = c.CaptureTimeUTC
-			FROM @@CHIRHO_SCHEMA@@.CoreXR_CaptureOrdinalCache c
+			FROM @@CHIRHO_SCHEMA_OBJECTS@@.CoreXR_CaptureOrdinalCache c
 			WHERE c.Utility = @ut 
 			AND c.CollectionInitiatorID = @init
 			AND c.StartTime = @st
@@ -157,7 +158,7 @@ BEGIN
 				SELECT @scratchint = ss.Ordinal
 				FROM (
 					SELECT TOP 1 c.Ordinal		--find the latest row in the cache (if the cache even exists) and get the ordinal
-					FROM @@CHIRHO_SCHEMA@@.CoreXR_CaptureOrdinalCache c
+					FROM @@CHIRHO_SCHEMA_OBJECTS@@.CoreXR_CaptureOrdinalCache c
 					WHERE c.Utility = @ut
 					AND c.CollectionInitiatorID = @init
 					AND c.StartTime = @st
@@ -171,7 +172,7 @@ BEGIN
 				SELECT @scratchint = ss.OrdinalNegative
 				FROM (
 					SELECT TOP 1 c.OrdinalNegative		--find the earliest row in the cache (if the cache even exists) and get the ordinal
-					FROM @@CHIRHO_SCHEMA@@.CoreXR_CaptureOrdinalCache c
+					FROM @@CHIRHO_SCHEMA_OBJECTS@@.CoreXR_CaptureOrdinalCache c
 					WHERE c.Utility = @ut 
 					AND c.CollectionInitiatorID = @init
 					AND c.StartTime = @st
@@ -195,9 +196,9 @@ BEGIN
 				IF @ut IN (N'sp_XR_SessionViewer', N'sp_XR_QueryProgress')
 				BEGIN
 					--If the cache does not exist yet, then we need to create it, of course.
-					-- Technically, we could do this from the @@CHIRHO_SCHEMA@@.AutoWho_CaptureTimes table directly,
-					-- which just holds a list of all SPIDCaptureTimes that have occurred for the @@CHIRHO_SCHEMA@@.AutoWho_Collector procedure.
-					-- However, we want to ensure that the @@CHIRHO_SCHEMA@@.AutoWho_CaptureSummary table is populated for the 
+					-- Technically, we could do this from the @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_CaptureTimes table directly,
+					-- which just holds a list of all SPIDCaptureTimes that have occurred for the @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_Collector procedure.
+					-- However, we want to ensure that the @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_CaptureSummary table is populated for the 
 					-- range we have been given, because as the user iterates through the AutoWho data in
 					-- the order specified in their CaptureOrdinalCache, some of the fields in the 
 					-- Capture Summary table will be useful to help the Auto Who viewer procedure formulate
@@ -205,7 +206,7 @@ BEGIN
 					-- info, if the Capture Summary indicates that there was no Blocking Graph generated for a given
 					-- capture time, then we can skip even looking at the blocking graph table at all).
 					SET @codeloc = 'CapSummPopEqZero1';
-					IF EXISTS (SELECT * FROM @@CHIRHO_SCHEMA@@.AutoWho_CaptureTimes t 
+					IF EXISTS (SELECT * FROM @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_CaptureTimes t 
 							WHERE t.CollectionInitiatorID = @init
 							AND t.SPIDCaptureTime BETWEEN @st and @et 
 							AND (CaptureSummaryPopulated = 0 OR CaptureSummaryDeltaPopulated = 0))
@@ -213,7 +214,7 @@ BEGIN
 							--will take care of correctly handling the 2 "populated" flags for either success or failure as appropriate
 					BEGIN
 						SET @codeloc = 'ExecPopCapSumm';
-						EXEC @scratchint = @@CHIRHO_SCHEMA@@.AutoWho_PopulateCaptureSummary @CollectionInitiatorID = @init, @StartTime = @st, @EndTime = @et; 
+						EXEC @scratchint = @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_PopulateCaptureSummary @CollectionInitiatorID = @init, @StartTime = @st, @EndTime = @et; 
 							--returns 1 if no rows were found in the range
 							-- -1 if there was an unexpected exception
 							-- 0 if success
@@ -234,10 +235,10 @@ BEGIN
 						END
 					END
 
-					--Ok, the @@CHIRHO_SCHEMA@@.AutoWho_CaptureSummary table now has entries for all of the capture times that occurred
+					--Ok, the @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_CaptureSummary table now has entries for all of the capture times that occurred
 					-- between @st and @et. Now, build our cache
 					SET @codeloc = 'CapOrdCache1';
-					INSERT INTO @@CHIRHO_SCHEMA@@.CoreXR_CaptureOrdinalCache (
+					INSERT INTO @@CHIRHO_SCHEMA_OBJECTS@@.CoreXR_CaptureOrdinalCache (
 						Utility, 
 						CollectionInitiatorID, 
 						StartTime, 
@@ -253,8 +254,8 @@ BEGIN
 						OrdinalNegative = 0 - ROW_NUMBER() OVER (ORDER BY ct.UTCCaptureTime DESC),
 						t.SPIDCaptureTime,
 						ct.UTCCaptureTime
-					FROM @@CHIRHO_SCHEMA@@.AutoWho_CaptureSummary t
-						INNER JOIN @@CHIRHO_SCHEMA@@.AutoWho_CaptureTimes ct
+					FROM @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_CaptureSummary t
+						INNER JOIN @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_CaptureTimes ct
 							ON t.UTCCaptureTime = ct.UTCCaptureTime
 					WHERE t.CollectionInitiatorID = @init
 					AND t.SPIDCaptureTime BETWEEN @st AND @et
@@ -278,7 +279,7 @@ BEGIN
 						SELECT 
 							@hct = c.CaptureTime,
 							@hctUTC = c.CaptureTimeUTC
-						FROM @@CHIRHO_SCHEMA@@.CoreXR_CaptureOrdinalCache c
+						FROM @@CHIRHO_SCHEMA_OBJECTS@@.CoreXR_CaptureOrdinalCache c
 						WHERE c.Utility = @ut 
 						AND c.CollectionInitiatorID = @init
 						AND c.StartTime = @st
@@ -291,7 +292,7 @@ BEGIN
 						SELECT 
 							@hct = c.CaptureTime,
 							@hctUTC = c.CaptureTimeUTC
-						FROM @@CHIRHO_SCHEMA@@.CoreXR_CaptureOrdinalCache c
+						FROM @@CHIRHO_SCHEMA_OBJECTS@@.CoreXR_CaptureOrdinalCache c
 						WHERE c.Utility = @ut 
 						AND c.CollectionInitiatorID = @init
 						AND c.StartTime = @st
@@ -307,7 +308,7 @@ BEGIN
 							SELECT @scratchint = ss.Ordinal
 							FROM (
 								SELECT TOP 1 c.Ordinal
-								FROM @@CHIRHO_SCHEMA@@.CoreXR_CaptureOrdinalCache c
+								FROM @@CHIRHO_SCHEMA_OBJECTS@@.CoreXR_CaptureOrdinalCache c
 								WHERE c.Utility = @ut 
 								AND c.CollectionInitiatorID = @init
 								AND c.StartTime = @st
@@ -321,7 +322,7 @@ BEGIN
 							SELECT @scratchint = ss.OrdinalNegative
 							FROM (
 								SELECT TOP 1 c.OrdinalNegative
-								FROM @@CHIRHO_SCHEMA@@.CoreXR_CaptureOrdinalCache c
+								FROM @@CHIRHO_SCHEMA_OBJECTS@@.CoreXR_CaptureOrdinalCache c
 								WHERE c.Utility = @ut 
 								AND c.CollectionInitiatorID = @init
 								AND c.StartTime = @st
@@ -364,7 +365,7 @@ BEGIN
 		--log location depends on utility
 		IF @ut IN (N'sp_XR_SessionViewer', N'sp_XR_QueryProgress')
 		BEGIN
-			EXEC @@CHIRHO_SCHEMA@@.AutoWho_LogEvent @ProcID=@@PROCID, @EventCode=-999, @TraceID=NULL, @Location='RetrieveOrdinalCache', @Message=@msg; 
+			EXEC @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_LogEvent @ProcID=@@PROCID, @EventCode=-999, @TraceID=NULL, @Location='RetrieveOrdinalCache', @Message=@msg; 
 		END
 		--other utility log writes go here
 
