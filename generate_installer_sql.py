@@ -96,8 +96,6 @@ def parse_config_file(file_path):
     return config
 
 
-
-
 def validate_config(config):
     expected_config_options = ['sql_engine_edition', 'sql_edition', 'product_major_version', 'product_minor_version',
                                'install_in_tempdb', 'chirho_db_name', 'chirho_schema_name', 'install_procs_in_master', 
@@ -292,14 +290,30 @@ def is_valid_code_line(line, config):
     return True
 
 def replace_config_tokens(line, config):
-    return line.replace('@@CHIRHO_ENGINE_TYPE@@', config['engine_type']) \
+    # These replacements are not dependent on where the ChiRho objects are to be created
+    modified_line = line.replace('@@CHIRHO_ENGINE_TYPE@@', config['engine_type']) \
                     .replace('@@CHIRHO_EDITION_FEATURES@@', config['edition_features']) \
                     .replace('@@CHIRHO_SQL_VERSION@@', config['sql_version']) \
-                    .replace('@@CHIRHO_DB_OBJECTS@@', config['db_name_objects']) \
-                    .replace('@@CHIRHO_SCHEMA_OBJECTS@@', config['schema_name_objects']) \
-                    .replace('@@CHIRHO_DB_ENDUSER@@', config['db_name_end_user']) \
-                    .replace('@@CHIRHO_SCHEMA_ENDUSER@@', config['schema_name_end_user']) \
                     .replace('@@CHIRHO_SQL_TIMEZONE@@', config['sql_time_zone'])
+    
+    # This token is not widely used, as we do not qualify the ChiRho objects with the DB name.
+    # So for now, it is safe to do this replacement without considering what sort of install is being done
+    modified_line = modified_line.replace('@@CHIRHO_DB_OBJECTS@@', config['db_name_objects'])
+    
+    if config['db_name_objects'] == 'tempdb':
+        # For tempdb installs, we want our objects to have "##" prepended, instead of a schema name.
+        # So note the extra "." character in the next line:
+        modified_line = modified_line.replace('@@CHIRHO_SCHEMA_OBJECTS@@.', '##')
+        # But in some places in the repo, the token @@CHIRHO_SCHEMA_OBJECTS@@ appears without a subsequent "."
+        # character, so we must search and replace for this also:
+        modified_line = modified_line.replace('@@CHIRHO_SCHEMA_OBJECTS@@', config['schema_name_objects'])
+    else:
+        modified_line = modified_line.replace('@@CHIRHO_SCHEMA_OBJECTS@@', config['schema_name_objects'])
+    
+    # These tokens are not yet in use in the repo; may need to write logic for them later.
+    #                .replace('@@CHIRHO_DB_ENDUSER@@', config['db_name_end_user'])
+    #                .replace('@@CHIRHO_SCHEMA_ENDUSER@@', config['schema_name_end_user'])
+    return modified_line
 
 def append_regular_ddl_files(outfile, folder, prefix, config):
     for filename in os.listdir(folder):
@@ -369,7 +383,8 @@ def main():
     #   'db_name_objects': 'XR', 
     #   'schema_name_objects': 'dbo', 
     #   'db_name_end_user': 'master', 
-    #   'schema_name_end_user': 'dbo'}
+    #   'schema_name_end_user': 'dbo'
+    #   'sql_time_zone': '"Pacific Time Zone"}
 
     if config['db_name_objects'] == 'tempdb':
         generate_tempdb_install(config, script_location)

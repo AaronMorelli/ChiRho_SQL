@@ -19,26 +19,26 @@
 *****
 *****	PROJECT DESCRIPTION: A T-SQL toolkit for troubleshooting performance and stability problems on SQL Server instances
 *****
-*****	FILE NAME: CoreXR_trgDEL_CoreXR_InstallationConfig.sql
+*****	FILE NAME: AutoWho_trgDEL_AutoWho_UserCollectionOptions.sql
 *****
-*****	TRIGGER NAME: CoreXR_trgDEL_CoreXR_InstallationConfig
+*****	TRIGGER NAME: AutoWho_trgDEL_AutoWho_UserCollectionOptions
 *****
 *****	AUTHOR:			Aaron Morelli
 *****					aaronmorelli@zoho.com
 *****					@sqlcrossjoin
 *****					sqlcrossjoin.wordpress.com
 *****
-*****	PURPOSE: Maintains the CoreXR_InstallationConfig_History table
-***** */
+*****	PURPOSE: Prevents deletes on the AutoWho_UserCollectionOptions table.
+******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-CREATE TRIGGER @@CHIRHO_SCHEMA_OBJECTS@@.CoreXR_trgDEL_CoreXR_InstallationConfig ON @@CHIRHO_SCHEMA_OBJECTS@@.CoreXR_InstallationConfig
+CREATE TRIGGER @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_trgDEL_AutoWho_UserCollectionOptions ON @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_UserCollectionOptions
 FOR DELETE
 AS
 BEGIN
-    RAISERROR('Deletes on the CoreXR_InstallationConfig table are forbidden.',10,1);
+    RAISERROR('Deletes on the Auto_WhoUserCollectionOptions table are forbidden. To reset the options to defaults, call the AutoWho_ResetUserCollectionOptions procedure.',10,1);
     ROLLBACK TRANSACTION;
 END
 GO

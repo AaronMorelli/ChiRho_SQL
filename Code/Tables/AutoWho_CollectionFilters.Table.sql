@@ -19,26 +19,23 @@
 *****
 *****	PROJECT DESCRIPTION: A T-SQL toolkit for troubleshooting performance and stability problems on SQL Server instances
 *****
-*****	FILE NAME: CoreXR_trgDEL_CoreXR_InstallationConfig.sql
+*****	FILE NAME: AutoWho_CollectionFilters.Table.sql
 *****
-*****	TRIGGER NAME: CoreXR_trgDEL_CoreXR_InstallationConfig
+*****	TABLE NAME: AutoWho_CollectionFilters
 *****
 *****	AUTHOR:			Aaron Morelli
 *****					aaronmorelli@zoho.com
 *****					@sqlcrossjoin
 *****					sqlcrossjoin.wordpress.com
 *****
-*****	PURPOSE: Maintains the CoreXR_InstallationConfig_History table
-***** */
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-CREATE TRIGGER @@CHIRHO_SCHEMA_OBJECTS@@.CoreXR_trgDEL_CoreXR_InstallationConfig ON @@CHIRHO_SCHEMA_OBJECTS@@.CoreXR_InstallationConfig
-FOR DELETE
-AS
-BEGIN
-    RAISERROR('Deletes on the CoreXR_InstallationConfig table are forbidden.',10,1);
-    ROLLBACK TRANSACTION;
-END
+*****	PURPOSE: Typically contains one or more types of filters (e.g. "session", or "database")
+*****	along with the filtering value(s).
+*****	NOTE: currently not planning to index this as this table should never have more than a few rows.
+******/
+CREATE TABLE @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_CollectionFilters (
+	[CollectionInitiatorID]	[tinyint] NOT NULL,
+	[FilterType] [tinyint] NOT NULL,
+	[FilterID] [int] NOT NULL,
+	[FilterName] [nvarchar](255) NULL
+)
 GO

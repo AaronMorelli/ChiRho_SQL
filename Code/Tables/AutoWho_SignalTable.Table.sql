@@ -19,26 +19,31 @@
 *****
 *****	PROJECT DESCRIPTION: A T-SQL toolkit for troubleshooting performance and stability problems on SQL Server instances
 *****
-*****	FILE NAME: CoreXR_trgDEL_CoreXR_InstallationConfig.sql
+*****	FILE NAME: AutoWho_SignalTable.Table.sql
 *****
-*****	TRIGGER NAME: CoreXR_trgDEL_CoreXR_InstallationConfig
+*****	TABLE NAME: AutoWho_SignalTable
 *****
 *****	AUTHOR:			Aaron Morelli
 *****					aaronmorelli@zoho.com
 *****					@sqlcrossjoin
 *****					sqlcrossjoin.wordpress.com
 *****
-*****	PURPOSE: Maintains the CoreXR_InstallationConfig_History table
-***** */
+*****	PURPOSE: Allows various "messages" to be passed in to the @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_Executor's
+*****	infinite loop, such as "abort".
+******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-CREATE TRIGGER @@CHIRHO_SCHEMA_OBJECTS@@.CoreXR_trgDEL_CoreXR_InstallationConfig ON @@CHIRHO_SCHEMA_OBJECTS@@.CoreXR_InstallationConfig
-FOR DELETE
-AS
-BEGIN
-    RAISERROR('Deletes on the CoreXR_InstallationConfig table are forbidden.',10,1);
-    ROLLBACK TRANSACTION;
-END
+CREATE TABLE @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_SignalTable(
+	[SignalName] [nvarchar](100) NOT NULL,
+	[SignalValue] [nvarchar](100) NULL,
+	[InsertTime] [datetime] NOT NULL,
+	[InsertTimeUTC] [datetime] NOT NULL,
+ CONSTRAINT [PK_AutoWho_SignalTable] PRIMARY KEY CLUSTERED 
+(
+	[SignalName] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+
+) ON [PRIMARY]
 GO
