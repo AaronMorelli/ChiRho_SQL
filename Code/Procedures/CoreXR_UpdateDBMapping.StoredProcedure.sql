@@ -50,14 +50,18 @@ BEGIN
 	DECLARE @EffectiveTime DATETIME = GETDATE(),
 			@EffectiveTimeUTC DATETIME = GETUTCDATE();
 
-	CREATE TABLE #CurrentDBIDNameMapping (
+	CREATE TABLE #Current_DBs (
 		database_id		INT NOT NULL, 
-		database_name   NVARCHAR(256) NOT NULL,
+		database_name   SYSNAME NOT NULL,
 		create_date 	DATETIME NOT NULL,
 		scenario 		NVARCHAR(20) NOT NULL,
 	);
 
-	INSERT INTO #CurrentDBIDNameMapping (
+	CREATE TABLE #Removed_DBs (
+		database_name 	SYSNAME NOT NULL
+	);
+
+	INSERT INTO #Current_DBs (
 		database_id, 
 		database_name,
 		create_date,
@@ -68,15 +72,11 @@ BEGIN
 		d.name,
 		d.create_date,
 
-		/* This CASE block covers all of the scenarios except for when there is a database_name in our 
-			"currently-active" set that is no longer in sys.databases at all. (Detecting that would require 
-			a LEFT JOIN with the tables reversed, or a FULL OUTER JOIN.)
-		*/
 		CASE
 			WHEN dbm.database_name IS NOT NULL
 				AND dbm.database_id = d.database_id
 				AND dbm.create_date = d.create_date
-				THEN N'NO_CHANGE'  --the most common scenario, and thus placed first even though it breaks up the "db name IS NOT NULL" cases
+				THEN N'NO_CHANGE'  --the most common scenario
 			WHEN dbm.database_name IS NULL
 				THEN N'NEW_DB'  --New, as in brand-new, or at least is not in our "currently-active-set" (it could have existed earlier and been removed)
 			WHEN dbm.database_name IS NOT NULL 
@@ -95,77 +95,92 @@ BEGIN
 	WHERE d.database_id > 4 --Sys DBs only get inserted into our mapping table once (see the comments in CoreXR_InsertConfigData)
 	OPTION(MAXDOP 1);
 
-	
-	BEGIN TRANSACTION;
+	IF EXISTS (SELECT * FROM #Current_DBs WHERE scenario = N'?')
+	BEGIN
+		--This SHOULD never happen, if I understand SQL Server's handling of database_id and create_date correctly (which I may not!)
+		RAISERROR('DBID mapping failed due to an unexpected error',16,1);
+		RETURN -1;
+	END
 
-	--Evaluate each row for whether we should close it out.
-	--Yes, this statement "updates" every row in the "active set", though in most cases will be non-updating updates...
-	-- see the Paul White post for the actual impact. This method of framing the logic is easy for me to understand 
-	-- and so for now this approach is "worth it". On most servers, the # of DBs will be in the dozens (at most), 
-	-- not hundreds or thousands, and DB changes will not be very common, so our whole dataset will probably fit on one 
-	-- page for a long time.
-	UPDATE targ
-	SET
-		EffectiveEndTime = 
-			CASE
-				WHEN t.scenario = N'NO_CHANGE'
-					THEN targ.EffectiveEndTime
-				WHEN t.database_name IS NULL  --DB Name no longer in sys.databases, so must have been removed
-					THEN @EffectiveTime
-				WHEN t.scenario IN (N'NEW_DATE', N'NEW_ID')  --in both these scenarios, DBName is still present, but should have a newer create_date;
-					THEN t.create_date						 --that create_date should still be earlier than @EffectiveTime, so that's our end time.
-				ELSE N'?' --should never hit this; this will raise an exception
-			END,
-		EffectiveEndTimeUTC =
-			CASE
-				WHEN t.scenario = N'NO_CHANGE'
-					THEN targ.EffectiveEndTimeUTC
-				WHEN t.database_name IS NULL
-					THEN @EffectiveTimeUTC
-				WHEN t.scenario IN (N'NEW_DATE', N'NEW_ID')
-					THEN DATEADD(MINUTE, DATEDIFF(MINUTE,GETDATE(), GETUTCDATE()), t.create_date)
-						--See the comment below on why this calculation isn't accurate, but "good enough" for now
-				ELSE N'?'
-			END
+	INSERT INTO #Removed_DBs (
+		database_name
+	)
+	SELECT
+		targ.database_name
 	FROM @@CHIRHO_SCHEMA_OBJECTS@@.CoreXR_DBIDNameMapping targ 
-		LEFT OUTER JOIN #CurrentDBIDNameMapping t
-			ON targ.database_name = t.database_name
 	WHERE targ.EffectiveEndTime IS NULL
-	AND targ.database_id not in (1,2,3,4)  --never close out system DBs.
+	AND targ.database_id not in (1,2,3,4)
+	AND NOT EXISTS (
+		SELECT *
+		FROM #Current_DBs t
+		WHERE t.database_name = targ.database_name
+	)
 	OPTION(MAXDOP 1);
 
+	--Any work to do?
+	IF EXISTS (SELECT * FROM #Removed_DBs)
+		OR EXISTS (SELECT * FROM #Current_DBs WHERE scenario != N'NO_CHANGE')
+	BEGIN
+		BEGIN TRANSACTION;
 
-	--Now enter our new entries, not only for brand-new DBs, but also for DBs that had change to their time or ID
-	INSERT INTO @@CHIRHO_SCHEMA_OBJECTS@@.CoreXR_DBIDNameMapping(
-		[database_name],
-		[database_id],
-		[create_date],
-		[EffectiveStartTimeUTC],
-		[EffectiveEndTimeUTC],
-		[EffectiveStartTime],
-		[EffectiveEndTime]
-	)
-	SELECT 
-		d.name,
-		d.database_id, 
-		d.create_date,
+		UPDATE targ 
+		SET EffectiveEndTime = @EffectiveTime,
+			EffectiveEndTimeUTC = @EffectiveEndTimeUTC
+		FROM @@CHIRHO_SCHEMA_OBJECTS@@.CoreXR_DBIDNameMapping targ 
+			INNER JOIN #Removed_DBs r
+				ON r.database_name = targ.database_name
+		WHERE targ.EffectiveEndTime IS NULL
+		AND targ.database_id not in (1,2,3,4)  --never close out system DBs.
+		OPTION(MAXDOP 1);
 
-		--This logic, meant to convert a datetime value to its UTC equivalent, does not actually work correctly. In older versions
-		--of SQL Server, there is no good way (outside of building some sort of calendar table) to reliably convert an arbitrary
-		--historical value over to its UTC equivalent. So for the "legacy" version of ChiRho, we are going to have to live with
-		--inexact values. (The "current" versions of ChiRho, which support SQL 2016 onward, will use the correct logic).
-		--The datetime values that we live with here will should be correct when we detect the database change within a few 
-		--minutes. So going forward, once we've been installed and are running regularly, we'll pick up the correct values.
-		--But for DBs that were created in the past, we cannot guarantee that the UTC time actually matches the local time in
-		--sys.databases.create_date
-		DATEADD(MINUTE, DATEDIFF(MINUTE,GETDATE(), GETUTCDATE()), d.create_date) as EffectiveStartTimeUTC,
-		NULL as EffectiveEndTimeUTC,
-		d.create_date as EffectiveStartTime,
-		NULL as EffectiveEndTime
-	FROM #CurrentDBIDNameMapping t
-	WHERE t.scenario IN (N'NEW_DB', N'NEW_DATE', N'NEW_ID');
+		UPDATE targ
+		SET
+			EffectiveEndTime = t.create_date,
+			EffectiveEndTimeUTC = DATEADD(MINUTE, DATEDIFF(MINUTE,GETDATE(), GETUTCDATE()), t.create_date)
+				--See the comment below on why this calculation isn't accurate, but "good enough" for now
 
-	COMMIT;
+		FROM @@CHIRHO_SCHEMA_OBJECTS@@.CoreXR_DBIDNameMapping targ 
+			INNER JOIN #Current_DBs t
+				ON targ.database_name = t.database_name
+				AND t.scenario IN (N'NEW_DATE', N'NEW_ID')  
+					--in both these scenarios, DBName is still present, but should have a newer create_date;
+					--that create_date should still be earlier than @EffectiveTime, so that's our end time.
+		WHERE targ.EffectiveEndTime IS NULL
+		AND targ.database_id not in (1,2,3,4)  --never close out system DBs.
+		OPTION(MAXDOP 1);
+
+		--Now enter our new entries, not only for brand-new DBs, but also for DBs that had change to their time or ID
+		INSERT INTO @@CHIRHO_SCHEMA_OBJECTS@@.CoreXR_DBIDNameMapping(
+			[database_name],
+			[database_id],
+			[create_date],
+			[EffectiveStartTimeUTC],
+			[EffectiveEndTimeUTC],
+			[EffectiveStartTime],
+			[EffectiveEndTime]
+		)
+		SELECT 
+			d.name,
+			d.database_id, 
+			d.create_date,
+
+			--This logic, meant to convert a datetime value to its UTC equivalent, does not actually work correctly. In older versions
+			--of SQL Server, there is no good way (outside of building some sort of calendar table) to reliably convert an arbitrary
+			--historical value over to its UTC equivalent. So for the "legacy" version of ChiRho, we are going to have to live with
+			--inexact values. (The "current" versions of ChiRho, which support SQL 2016 onward, will use the correct logic).
+			--The datetime values that we live with here will should be correct when we detect the database change within a few 
+			--minutes. So going forward, once we've been installed and are running regularly, we'll pick up the correct values.
+			--But for DBs that were created in the past, we cannot guarantee that the UTC time actually matches the local time in
+			--sys.databases.create_date
+			DATEADD(MINUTE, DATEDIFF(MINUTE,GETDATE(), GETUTCDATE()), d.create_date) as EffectiveStartTimeUTC,
+			NULL as EffectiveEndTimeUTC,
+			d.create_date as EffectiveStartTime,
+			NULL as EffectiveEndTime
+		FROM #Current_DBs t
+		WHERE t.scenario IN (N'NEW_DB', N'NEW_DATE', N'NEW_ID');
+
+		COMMIT;
+	END
 
 	RETURN 0;
 END
