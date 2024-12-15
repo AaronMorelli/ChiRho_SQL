@@ -46,6 +46,7 @@ EXEC @@CHIRHO_SCHEMA_OBJECTS@@.CoreXR_InsertConfigData
 truncate table @@CHIRHO_SCHEMA_OBJECTS@@.CoreXR_ProfilerTraceEvents;
 truncate table @@CHIRHO_SCHEMA_OBJECTS@@.CoreXR_InstallationConfig;
 truncate table @@CHIRHO_SCHEMA_OBJECTS@@.CoreXR_CollectionInitiators;
+truncate table @@CHIRHO_SCHEMA_OBJECTS@@.CoreXR_DBIDNameMapping;
 */
 AS
 BEGIN
@@ -55,6 +56,7 @@ BEGIN
 	IF EXISTS (SELECT * FROM @@CHIRHO_SCHEMA_OBJECTS@@.CoreXR_ProfilerTraceEvents)
 		OR EXISTS (SELECT * FROM @@CHIRHO_SCHEMA_OBJECTS@@.CoreXR_InstallationConfig)
 		OR EXISTS (SELECT * FROM @@CHIRHO_SCHEMA_OBJECTS@@.CoreXR_CollectionInitiators)
+		OR EXISTS (SELECT * FROM @@CHIRHO_SCHEMA_OBJECTS@@.CoreXR_DBIDNameMapping)
 	BEGIN
 		RAISERROR('The configuration tables are not empty. You must clear these tables first before this procedure will insert config data', 16,1);
 		RETURN -2;
@@ -91,9 +93,54 @@ BEGIN
 		GETDATE(),
 		GETUTCDATE();
 
-	EXEC @@CHIRHO_SCHEMA_OBJECTS@@.CoreXR_InsertProfilerConfigData;
+	INSERT INTO @@CHIRHO_SCHEMA_OBJECTS@@.CoreXR_DBIDNameMapping(
+		[database_name],
+		[database_id],
+		[create_date],
+		[EffectiveStartTimeUTC],
+		[EffectiveEndTimeUTC],
+		[EffectiveStartTime],
+		[EffectiveEndTime]
+	)
+	SELECT 
+		d.name,
+		d.database_id, 
 
-	EXEC @@CHIRHO_SCHEMA_OBJECTS@@.CoreXR_UpdateDBMapping;
+		/* For the system DBs, we hardcode a basic time that is always relevant, will not
+		    change. So for tempdb, we have the same value all the time, instead of the 
+			instance start-up time. (Code that needs to get the instance startup time should
+			not use this table!)
+			And if our DB is detached and attached to a new SQL instance, and the msdb time
+			has changed, then our time will not change.
+
+			This logic, while losing a bit of info (startup time, time that msdb was attached e.g. for a server rebuild
+			or migration, or the very old times for master and model), helps to preserve the guarantee
+			that our time ranges for a given system database_id will never overlap.
+			We only need to consider the scenarios for user databases.
+
+			Thus, the record for the system DBs should only ever be inserted one time, here at config time.
+		*/
+		CASE WHEN d.database_id in (1, 2, 3, 4) THEN '2000-01-01 00:00:00.000'
+			ELSE d.create_date
+		END as create_date,
+
+		--This logic, meant to convert a datetime value to its UTC equivalent, does not actually work correctly. In older versions
+		--of SQL Server, there is no good way (outside of building some sort of calendar table) to reliably convert an arbitrary
+		--historical value over to its UTC equivalent. So for the "legacy" version of ChiRho, we are going to have to live with
+		--inexact values. (The "current" versions of ChiRho, which support SQL 2016 onward, will use the correct logic).
+		--The datetime values that we live with here will should be correct when we detect the database change within a few 
+		--minutes. So going forward, once we've been installed and are running regularly, we'll pick up the correct values.
+		--But for DBs that were created in the past, we cannot guarantee that the UTC time actually matches the local time in
+		--sys.databases.create_date
+		DATEADD(MINUTE, DATEDIFF(MINUTE,GETDATE(), GETUTCDATE()), d.create_date) as EffectiveStartTimeUTC,
+		NULL as EffectiveEndTimeUTC,
+		CASE WHEN d.database_id in (1, 2, 3, 4) THEN '2000-01-01 00:00:00.000'
+			ELSE d.create_date
+		END as EffectiveStartTime,
+		NULL as EffectiveEndTime
+	FROM sys.databases d;
+
+	EXEC @@CHIRHO_SCHEMA_OBJECTS@@.CoreXR_InsertProfilerConfigData;
 
 	RETURN 0;
 END

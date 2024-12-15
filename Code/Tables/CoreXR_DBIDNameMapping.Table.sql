@@ -37,8 +37,8 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 CREATE TABLE @@CHIRHO_SCHEMA_OBJECTS@@.CoreXR_DBIDNameMapping(
+	[database_name]			[sysname] NOT NULL,
 	[database_id]			[int] NOT NULL,
-	[name]				    [nvarchar](256) NOT NULL,
 	[create_date]           [datetime] NOT NULL,
 	[EffectiveStartTimeUTC] [datetime] NOT NULL,
 	[EffectiveEndTimeUTC]	[datetime] NULL,
@@ -49,7 +49,7 @@ CREATE TABLE @@CHIRHO_SCHEMA_OBJECTS@@.CoreXR_DBIDNameMapping(
 	--Note that in theory, a given DBID and DB Name mapping could appear multiple times (edge case, but possible).
 	--Thus, we make DB creation time a part of the key. Since there is millisecond granularity, we should never have
 	--a problem with duplicates on either the (DB ID, creation time) or (DB Name, creation time) key combinations
-	[database_id] ASC,
+	[database_name] ASC,
 	[create_date] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
 ) ON [PRIMARY]
@@ -57,10 +57,10 @@ CREATE TABLE @@CHIRHO_SCHEMA_OBJECTS@@.CoreXR_DBIDNameMapping(
 GO
 CREATE UNIQUE NONCLUSTERED INDEX [AKDBIDNameMapping] ON @@CHIRHO_SCHEMA_OBJECTS@@.CoreXR_DBIDNameMapping
 (
-	[name] ASC,
+	[database_id] ASC,
 	[create_date] ASC
 )
-INCLUDE ([database_id],
+INCLUDE ([database_name],
 	[EffectiveStartTimeUTC],
 	[EffectiveEndTimeUTC],
 	[EffectiveStartTime],
