@@ -28,7 +28,9 @@
 *****					@sqlcrossjoin
 *****					sqlcrossjoin.wordpress.com
 *****
-*****	PURPOSE: Deletes the row in @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_Options and re-inserts a row based on default values
+*****	PURPOSE: Deletes the row in @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_Options and re-inserts a row based on default values.
+*****    Since we have a trigger that prevents deletions from the AutoWho_Options table (to enforce our assumption that there
+*****    are valid options in that table), this proc is the interface for resetting things to their default values.
 ******/
 SET ANSI_NULLS ON
 GO
@@ -49,18 +51,38 @@ BEGIN
 	SET NOCOUNT ON;
 
 	INSERT INTO @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_Options_History (
-		RowID, AutoWhoEnabled, BeginTime, EndTime, BeginEndIsUTC, IntervalLength, IncludeIdleWithTran, IncludeIdleWithoutTran, DurationFilter, IncludeDBs, ExcludeDBs, HighTempDBThreshold, CollectSystemSpids, HideSelf, ObtainBatchText, ObtainQueryPlanForStatement, ObtainQueryPlanForBatch, ObtainLocksForBlockRelevantThreshold, InputBufferThreshold, ParallelWaitsThreshold, QueryPlanThreshold, QueryPlanThresholdBlockRel, BlockingChainThreshold, BlockingChainDepth, TranDetailsThreshold, MediumDurationThreshold, HighDurationThreshold, BatchDurationThreshold, LongTransactionThreshold, Retention_IdleSPIDs_NoTran, Retention_IdleSPIDs_WithShortTran, Retention_IdleSPIDs_WithLongTran, Retention_IdleSPIDs_HighTempDB, Retention_ActiveLow, Retention_ActiveMedium, Retention_ActiveHigh, Retention_ActiveBatch, Retention_CaptureTimes, DebugSpeed, ThresholdFilterRefresh, SaveBadDims, Enable8666, ResolvePageLatches, ResolveLockWaits, PurgeUnextractedData,
+		RowID, AutoWhoEnabled, BeginTime, EndTime, BeginEndIsUTC, IntervalLength, 
+		IncludeIdleWithTran, IncludeIdleWithoutTran, DurationFilter, IncludeDBs, ExcludeDBs, 
+		HighTempDBThreshold, CollectSystemSpids, HideSelf, ObtainBatchText, 
+		ObtainQueryPlanForStatement, ObtainQueryPlanForBatch, ObtainLocksForBlockRelevantThreshold, 
+		InputBufferThreshold, ParallelWaitsThreshold, QueryPlanThreshold, QueryPlanThresholdBlockRel, 
+		BlockingChainThreshold, BlockingChainDepth, TranDetailsThreshold, 
+		MediumDurationThreshold, HighDurationThreshold, BatchDurationThreshold, LongTransactionThreshold, 
+		Retention_IdleSPIDs_NoTran, Retention_IdleSPIDs_WithShortTran, Retention_IdleSPIDs_WithLongTran, 
+		Retention_IdleSPIDs_HighTempDB, Retention_ActiveLow, Retention_ActiveMedium, Retention_ActiveHigh, 
+		Retention_ActiveBatch, Retention_CaptureTimes, DebugSpeed, ThresholdFilterRefresh, SaveBadDims, 
+		Enable8666, ResolvePageLatches, ResolveLockWaits, PurgeUnextractedData,
 		HistoryInsertDate,
 		HistoryInsertDateUTC,
 		TriggerAction,
 		LastModifiedUser
 	)
 	SELECT 
-		RowID, AutoWhoEnabled, BeginTime, EndTime, BeginEndIsUTC, IntervalLength, IncludeIdleWithTran, IncludeIdleWithoutTran, DurationFilter, IncludeDBs, ExcludeDBs, HighTempDBThreshold, CollectSystemSpids, HideSelf, ObtainBatchText, ObtainQueryPlanForStatement, ObtainQueryPlanForBatch, ObtainLocksForBlockRelevantThreshold, InputBufferThreshold, ParallelWaitsThreshold, QueryPlanThreshold, QueryPlanThresholdBlockRel, BlockingChainThreshold, BlockingChainDepth, TranDetailsThreshold, MediumDurationThreshold, HighDurationThreshold, BatchDurationThreshold, LongTransactionThreshold, Retention_IdleSPIDs_NoTran, Retention_IdleSPIDs_WithShortTran, Retention_IdleSPIDs_WithLongTran, Retention_IdleSPIDs_HighTempDB, Retention_ActiveLow, Retention_ActiveMedium, Retention_ActiveHigh, Retention_ActiveBatch, Retention_CaptureTimes, DebugSpeed, ThresholdFilterRefresh, SaveBadDims, Enable8666, ResolvePageLatches, ResolveLockWaits, PurgeUnextractedData,
-		GETDATE(),
-		GETUTCDATE(),
-		'Reset',
-		SUSER_NAME()
+		RowID, AutoWhoEnabled, BeginTime, EndTime, BeginEndIsUTC, IntervalLength, 
+		IncludeIdleWithTran, IncludeIdleWithoutTran, DurationFilter, IncludeDBs, ExcludeDBs, 
+		HighTempDBThreshold, CollectSystemSpids, HideSelf, ObtainBatchText, 
+		ObtainQueryPlanForStatement, ObtainQueryPlanForBatch, ObtainLocksForBlockRelevantThreshold, 
+		InputBufferThreshold, ParallelWaitsThreshold, QueryPlanThreshold, QueryPlanThresholdBlockRel, 
+		BlockingChainThreshold, BlockingChainDepth, TranDetailsThreshold, 
+		MediumDurationThreshold, HighDurationThreshold, BatchDurationThreshold, LongTransactionThreshold, 
+		Retention_IdleSPIDs_NoTran, Retention_IdleSPIDs_WithShortTran, Retention_IdleSPIDs_WithLongTran, 
+		Retention_IdleSPIDs_HighTempDB, Retention_ActiveLow, Retention_ActiveMedium, Retention_ActiveHigh, 
+		Retention_ActiveBatch, Retention_CaptureTimes, DebugSpeed, ThresholdFilterRefresh, SaveBadDims, 
+		Enable8666, ResolvePageLatches, ResolveLockWaits, PurgeUnextractedData,
+		GETDATE() as HistoryInsertDate,
+		GETUTCDATE() as HistoryInsertDateUTC,
+		'Reset' as TriggerAction,
+		SUSER_NAME() as LastModifiedUser
 	FROM @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_Options;
 
 	DISABLE TRIGGER @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_trgDEL_AutoWho_Options ON @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_Options;

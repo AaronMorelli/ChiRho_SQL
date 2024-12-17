@@ -74,9 +74,10 @@ CREATE UNIQUE NONCLUSTERED INDEX [UNCL_SPIDCaptureTime_OTHERS] ON @@CHIRHO_SCHEM
 	[CollectionInitiatorID] ASC,
 	[SPIDCaptureTime] ASC
 )
-INCLUDE ( 	
+INCLUDE (
 	[UTCCaptureTime],
 	[RunWasSuccessful],
+	[PrevSuccessfulUTCCaptureTime],
 	[SpidsCaptured],
 	[PostProcessed_StmtStats],
 	[PostProcessed_Latch],

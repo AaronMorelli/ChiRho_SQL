@@ -40,7 +40,7 @@ SET QUOTED_IDENTIFIER ON
 GO
 CREATE TABLE @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_LightweightTrans(
 	[SPIDCaptureTime] [datetime] NOT NULL,
-	[UTCCaptureTime] [datetime] NOT NULL,		--unlike SAR, we need a UTC field because lightweight captures are not recorded in @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_CaptureTime
+	[UTCCaptureTime] [datetime] NOT NULL,
 	[dtat__transaction_id] [bigint] NOT NULL,
 	[dtat__transaction_name] [nvarchar](32) NOT NULL,
 	[dtat__transaction_begin_time] [datetime] NOT NULL,

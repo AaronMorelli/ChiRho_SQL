@@ -44,10 +44,10 @@ EXEC @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_InsertConfigData @HoursToKeep=336	--14 da
 
 --use to reset the data:
 truncate table @@CHIRHO_SCHEMA_OBJECTS@@.CoreXR_ProcessingTimes;
-truncate table @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_UserCollectionOptions;
-truncate table @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_UserCollectionOptions_History;
 truncate table @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_Options;
 truncate table @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_Options_History;
+truncate table @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_UserCollectionOptions;
+truncate table @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_UserCollectionOptions_History;
 truncate table @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_CollectorOptFakeout;
 truncate table @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimCommand;
 truncate table @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimConnectionAttribute;
@@ -55,6 +55,7 @@ truncate table @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimLoginName;
 truncate table @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimNetAddress;
 truncate table @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimSessionAttribute;
 truncate table @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimWaitType;
+delete from @@CHIRHO_SCHEMA_OBJECTS@@.CoreXR_ProcessingTimes WHERE Label IN (N'AutoWhoStoreLastTouched');
 */
 (
 	@HoursToKeep INT
@@ -62,6 +63,16 @@ truncate table @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimWaitType;
 AS
 BEGIN
 	SET NOCOUNT ON;
+
+	DECLARE
+		@lv__nullstring						NVARCHAR(8),
+		@lv__nullint						INT,
+		@lv__nullsmallint					SMALLINT;
+
+	SET @lv__nullstring = N'<nul5>';		--used the # 5 just to make it that much more unlikely that our "special value" 
+											-- would collide with a DMV value
+	SET @lv__nullint = -929;				--ditto, used a strange/random number rather than -999, so there is even less of a chance of 
+	SET @lv__nullsmallint = -929;			-- overlapping with some special system value
 
 	IF ISNULL(@HoursToKeep,-1) <= 0 OR ISNULL(@HoursToKeep,9999) > 4320
 	BEGIN
@@ -96,7 +107,7 @@ BEGIN
 	SET IDENTITY_INSERT @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimCommand ON;
 
 	--We want the special null value to be ID = 1 so we can fill it in for null values via code even though the join will fail to produce a match
-	INSERT INTO @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimCommand (DimCommandID, command, TimeAdded) SELECT 1, '<nul5>',GETDATE();
+	INSERT INTO @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimCommand (DimCommandID, command, TimeAdded) SELECT 1, @lv__nullstring, GETDATE();
 	--similarly, we want a special code for the GHOST CLEANUP spid, because we want to avoid page latch resolution if GHOST CLEANUP is running (since we've
 	-- seen very long DBCC PAGE runtimes when GHOST CLEANUP was running). 
 	INSERT INTO @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimCommand (DimCommandID, command, TimeAdded) SELECT 2, 'GHOST CLEANUP',GETDATE();
@@ -109,9 +120,27 @@ BEGIN
 	SET IDENTITY_INSERT @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimConnectionAttribute ON;
 
 	--System spids don't have a connection attribute, so assign them to ID=1 in the code
-	INSERT INTO @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimConnectionAttribute 
-	(DimConnectionAttributeID, net_transport, protocol_type, protocol_version, endpoint_id, node_affinity, net_packet_size, encrypt_option, auth_scheme, TimeAdded)
-	SELECT 1, '<nul5>', '<nul5>', -929, -929, -929, -929, '<nul5>', '<nul5>', GETDATE();
+	INSERT INTO @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimConnectionAttribute (
+		DimConnectionAttributeID, 
+		net_transport, 
+		protocol_type, 
+		protocol_version, 
+		endpoint_id, 
+		node_affinity, 
+		net_packet_size, 
+		encrypt_option, 
+		auth_scheme
+	)
+	SELECT 
+		1, 
+		@lv__nullstring as net_transport,
+		@lv__nullstring as protocol_type,
+		@lv__nullint as protocol_version,
+		@lv__nullint as endpoint_id,
+		@lv__nullsmallint as node_affinity,
+		@lv__nullint as net_packet_size,
+		@lv__nullstring as encrypt_option,
+		@lv__nullstring as auth_scheme;
 
 	SET IDENTITY_INSERT @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimConnectionAttribute OFF;
 
@@ -119,34 +148,50 @@ BEGIN
 	SET IDENTITY_INSERT @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimLoginName ON;
 
 	--spids with NULL values in both fields get code 1. I'm not sure if this is even possible?
-	INSERT INTO @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimLoginName (DimLoginNameID, login_name, original_login_name, TimeAdded)
-	SELECT 1, '<nul5>', '<nul5>', GETDATE();
+	INSERT INTO @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimLoginName (DimLoginNameID, login_name, original_login_name)
+	SELECT 1, @lv__nullstring, @lv__nullstring;
 	--system spids (which I believe always have 'sa' for both) will get code 2. But what happens if 'sa' login has been disabled?
-	INSERT INTO @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimLoginName (DimLoginNameID, login_name, original_login_name, TimeAdded)
-	SELECT 2, 'sa', 'sa', GETDATE();
+	INSERT INTO @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimLoginName (DimLoginNameID, login_name, original_login_name)
+	SELECT 2, 'sa', 'sa';
 	SET IDENTITY_INSERT @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimLoginName OFF;
 
-	SET IDENTITY_INSERT @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimNetAddress] ON;
+	SET IDENTITY_INSERT @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimNetAddress ON;
 	--Local connections that come through Shared Memory will have several null fields, so prepopulate this dim with
 	-- a pre-defined ID value, so that we can assign via hard-coded logic rather than the join
-	INSERT INTO @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimNetAddress (DimNetAddressID, client_net_address, local_net_address, local_tcp_port, TimeAdded) 
-	SELECT 1, N'<nul5>', '<nul5>', -929, getdate();
+	INSERT INTO @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimNetAddress (DimNetAddressID, client_net_address, local_net_address, local_tcp_port)
+	SELECT 1, @lv__nullstring, @lv__nullstring, @lv__nullint;
 
-	INSERT INTO @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimNetAddress (DimNetAddressID, client_net_address, local_net_address, local_tcp_port, TimeAdded) 
-	SELECT 2, N'<local machine>', '<nul5>', -929, getdate();
+	INSERT INTO @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimNetAddress (DimNetAddressID, client_net_address, local_net_address, local_tcp_port)
+	SELECT 2, N'<local machine>', @lv__nullstring, @lv__nullint;
 
 	SET IDENTITY_INSERT @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimNetAddress OFF;
 
 
 	SET IDENTITY_INSERT @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimSessionAttribute ON;
 
-	--This is a "null row"; however, system spids have values for several of the attributes, based on what I've seen. 
+	--This is a "null row"; however, system spids have values for several of the attributes, based on what I have seen. 
 	-- Thus, most system spids will map to that row when it is inserted.
-	INSERT INTO @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimSessionAttribute
-	(DimSessionAttributeID, host_name, program_name, client_version, client_interface_name, 
-		endpoint_id, transaction_isolation_level, deadlock_priority, group_id, TimeAdded)
-	SELECT 1, '<nul5>', '<nul5>', -929, '<nul5>', 
-		-929, -929, -929, -929, GETDATE();
+	INSERT INTO @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimSessionAttribute (
+		DimSessionAttributeID, 
+		host_name, 
+		program_name, 
+		client_version, 
+		client_interface_name, 
+		endpoint_id, 
+		transaction_isolation_level, 
+		deadlock_priority, 
+		group_id
+	)
+	SELECT 
+		1, 
+		@lv__nullstring as host_name,
+		@lv__nullstring as program_name,
+		@lv__nullint as client_version,
+		@lv__nullstring as client_interface_name,
+		@lv__nullint as endpoint_id,
+		@lv__nullsmallint as transaction_isolation_level,
+		@lv__nullsmallint as deadlock_priority,
+		@lv__nullint as group_id;
 
 	SET IDENTITY_INSERT @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimSessionAttribute OFF;
 
@@ -155,14 +200,13 @@ BEGIN
 	-- No value... we interpret this to mean "not waiting"
 	INSERT INTO @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimWaitType
 	(DimWaitTypeID, wait_type, wait_type_short, latch_subtype)
-	SELECT 1, '<nul5>', '<nul5>', N'';
+	SELECT 1, @lv__nullstring, @lv__nullstring, N'';
 
 	INSERT INTO @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimWaitType
 	(DimWaitTypeID, wait_type, wait_type_short, latch_subtype)
 	SELECT 2, 'WAITFOR', 'WAITFOR', N'';
 
 	SET IDENTITY_INSERT @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimWaitType OFF;
-
 
 	--Options
 	EXEC @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_ResetOptions; 
@@ -181,7 +225,8 @@ BEGIN
 		Retention_CaptureTimes = (@HoursToKeep/24) + 2
 	;
 
-	EXEC @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_ResetUserCollectionOptions;
+	--TODO: uncomment once we introduce the user collector logic
+	--EXEC @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_ResetUserCollectionOptions;
 
 	INSERT INTO @@CHIRHO_SCHEMA_OBJECTS@@.CoreXR_ProcessingTimes (Label, LastProcessedTime, LastProcessedTimeUTC)
 	SELECT N'AutoWhoStoreLastTouched', NULL, NULL;

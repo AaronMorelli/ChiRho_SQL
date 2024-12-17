@@ -30,11 +30,19 @@
 *****
 *****	PURPOSE: Typically contains one or more types of filters (e.g. "session", or "database")
 *****	along with the filtering value(s).
-*****	NOTE: currently not planning to index this as this table should never have more than a few rows.
+*****	NOTE: currently not planning to index this as this table should never have more than a few rows given the
+*****    current types of filtering logic present in AutoWho.
 ******/
 CREATE TABLE @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_CollectionFilters (
 	[CollectionInitiatorID]	[tinyint] NOT NULL,
 	[FilterType] [tinyint] NOT NULL,
+				--One of these values:
+				--0 DB inclusion - logic applying this filter should INCLUDE records that have this DB (DB is specified in FilterID or FilterName)
+				--1 DB exclusion - Logic applying this filter should EXCLUDE recorsd that have this DB
+				--128 threshold filtering (sessions [their numbers are in the FilterID field] that shouldn't be counted against the various 
+				--							thresholds that trigger auxiliary data collection in AutoWho_Collector logic)
+				--down the road, more to come (TODO: maybe filter by logins down the road?)
+
 	[FilterID] [int] NOT NULL,
 	[FilterName] [nvarchar](255) NULL
 )

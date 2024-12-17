@@ -28,7 +28,7 @@
 *****					@sqlcrossjoin
 *****					sqlcrossjoin.wordpress.com
 *****
-*****	PURPOSE: Holds a list of distinct commands observed by the @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_Collector proc
+*****	PURPOSE: Holds a list of distinct commands (from the sys.dm_exec_requests DMV) observed by the @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_Collector proc
 ******/
 SET ANSI_NULLS ON
 GO

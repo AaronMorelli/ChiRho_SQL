@@ -156,7 +156,7 @@ BEGIN
 
 	20. Dimension logic: 
 			Our threshold scan also checked for Dimension IDs that were null in #sar & #taw... that is, where
-			the joins to the dimension tables didn't find a match. This means we need to insert a new dimension member.
+			the joins to the dimension tables did not find a match. This means we need to insert a new dimension member.
 
 			For each dimension table, we check to see if @NewDims__<dim table> is > 0, and if so, we grab the new member
 			and insert it.
@@ -175,7 +175,7 @@ BEGIN
 
 	23. We persist the #taw data to @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_TasksAndWaits, persisting background tasks (null session_id) if they
 		have certain interesting wait types (practically speaking, THREADPOOL is the main one here). We persist
-		all tasks for parallel queries only if the request's duration is above a certain threshold.
+		all tasks for parallel queries only if the requests duration is above a certain threshold.
 
 	24. Persist the BlockingGraph data, if we gathered any.
 
@@ -1127,7 +1127,7 @@ BEGIN TRY
 										-- due to spids that are running a parallel query and thus show as blocking themselves. Thus, this "is_blocker" 
 										-- column will be populated when we pull data from the dm_os_waiting_tasks view
 
-			--We basically compare each SPID (and its "command") with its known waiting type/status to see if the session spid is active or not.
+			--We basically compare each SPID (and its "command") with its known "idle" waiting type/status to see if the session spid is active or not.
 			[calc__sysspid_isinteresting] = (
 					CASE WHEN s.is_user_process = 1									THEN CONVERT(BIT,0)
 						WHEN @CollectSystemSpids = N'N'							THEN CONVERT(BIT,0)

@@ -42,7 +42,7 @@ CREATE TABLE @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_BlockingGraphs(
 	[session_id]				[smallint] NOT NULL,
 	[request_id]				[smallint] NOT NULL,
 	[exec_context_id]			[smallint] NULL,
-	[calc__blocking_session_Id] [smallint] NULL,
+	[calc__blocking_session_id] [smallint] NULL,
 	[wait_type]					[nvarchar](60) NULL,
 	[wait_duration_ms]			[bigint] NULL,
 	[resource_description]		[nvarchar](500) NULL,
@@ -50,7 +50,7 @@ CREATE TABLE @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_BlockingGraphs(
 	[FKSQLStmtStoreID]			[bigint] NULL,
 	[sort_value]				[nvarchar](400) NULL,
 	[block_group]				[smallint] NULL,
-	[levelindc]					[smallint] NOT NULL,
+	[level_indc]				[smallint] NOT NULL,
 	[rn]						[smallint] NOT NULL
 ) ON [PRIMARY]
 GO

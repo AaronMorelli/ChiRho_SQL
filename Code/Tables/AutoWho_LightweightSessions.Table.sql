@@ -40,7 +40,7 @@ SET QUOTED_IDENTIFIER ON
 GO
 CREATE TABLE @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_LightweightSessions(
 	[SPIDCaptureTime] [datetime] NOT NULL,
-	[UTCCaptureTime] [datetime] NOT NULL,		--unlike SAR, we need a UTC field because lightweight captures are not recorded in @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_CaptureTime
+	[UTCCaptureTime] [datetime] NOT NULL,
 	[sess__session_id] [smallint] NOT NULL,
 	[sess__login_time] [datetime] NOT NULL,
 	[sess__host_name] [nvarchar](128) NULL,

@@ -28,7 +28,7 @@
 *****					@sqlcrossjoin
 *****					sqlcrossjoin.wordpress.com
 *****
-*****	PURPOSE: Holds a distinct list of login names observed by @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_Collector
+*****	PURPOSE: Holds a distinct list of login names (from sys.dm_exec_sessions) observed by @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_Collector
 ******/
 SET ANSI_NULLS ON
 GO

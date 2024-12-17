@@ -80,7 +80,7 @@ BEGIN
 		[LogDTUTC] = SYSUTCDATETIME(),
 		[TraceID] = @TraceID,
 		[ProcID] = @ProcID,
-		[ProcName] = @ProcName,
+		[ProcName] = ISNULL(@ProcName, 'Proc ID supplied but no matching object ID found: ' + CONVERT(NVARCHAR(256), @ProcID))
 		[NestLevel] = @@NESTLEVEL - 1,
 		[AutoWhoCode] = ISNULL(@EventCode,-9999999),
 		[LocationTag] = ISNULL(@Location,'<null>'),

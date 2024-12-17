@@ -40,7 +40,7 @@ SET QUOTED_IDENTIFIER ON
 GO
 CREATE TABLE @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_LightweightTasks(
 	[SPIDCaptureTime] [datetime] NOT NULL,
-	[UTCCaptureTime] [datetime] NOT NULL,		--unlike TAW, we need a UTC field because lightweight captures are not recorded in @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_CaptureTime
+	[UTCCaptureTime] [datetime] NOT NULL,
 	[task__task_address] [varbinary](8) NOT NULL,
 	[task__task_state] [nvarchar](60) NULL,
 	[task__context_switches_count] [int] NULL,

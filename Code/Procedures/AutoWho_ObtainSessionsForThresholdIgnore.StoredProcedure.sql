@@ -31,7 +31,7 @@
 *****	PURPOSE: The AutoWho collector uses "threshold" parameters to determine whether certain, more-expensive
 *****		activities (collecting query plans, input buffers, tran or lock info, etc) are required. If no SPIDs
 *****		cross those thresholds on a given run, that extra info will not be collected. This strategy helps keep
-*****		the collector efficient. 
+*****		the collector as fast as possible while still capturing the important "extra" data when necessary. 
 *****
 *****		The main driver for these thresholds is spid (active or idle) duration. However, there are sessions that
 *****		we know will be active all day (e.g. the AutoWho and Server Executor/Collector SPIDs), so we need to 
@@ -53,6 +53,10 @@ To Execute
 EXEC @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_ObtainSessionsForThresholdIgnore 
 
 */
+(
+	@AddSelf NCHAR(1),
+	@AddServerEye NCHAR(1)
+)
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -60,13 +64,19 @@ BEGIN
 		Sessions we want to identify:
 			Self (because even if the AutoWho.Options table has us including SELF, we still don't
 				want it to trigger the thresholds)
+				NOTE: finally added @AddSelf as a parameter so that if this proc is called by anything
+					other than the AutoWho_Executor, the caller has to explicitly opt-in to excluding
+					their own session from the threshold logic.
 			TODO: ServerEye's Executor/Collector
 				Note that I do not have any logic in this proc yet for this case!
 	*/
 	DECLARE @SPIDsToFilter TABLE (SessionID INT); 
 
-	INSERT INTO @SPIDsToFilter (SessionID)
-	SELECT @@SPID;
+	IF @AddSelf = N'Y'
+	BEGIN
+		INSERT INTO @SPIDsToFilter (SessionID)
+		SELECT @@SPID;
+	END
 
 	--For some spids, we may want to identify them based on their DBCC INPUTBUFFER.
 	DECLARE @SPIDsToIB TABLE (SessionID INT, DatabaseID SMALLINT);

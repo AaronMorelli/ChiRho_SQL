@@ -31,7 +31,8 @@
 *****	PURPOSE: Splits out the comma-separated entries in the "DurationBreakdown" field of @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_CaptureTimes
 *****		into aggregated rows, to allow us to see which statements in the AutoWho Collector are typically the
 *****		most expensive. The Messages tab also holds a query that can be used to view the detailed data for
-*****		ad-hoc analysis.
+*****		ad-hoc analysis. This statement is meant to be run by developers/DBAs analyzing AutoWho durations, rather than by
+*****       the production AutoWho (or broader ChiRho) code itself.
 ******/
 SET ANSI_NULLS ON
 GO
@@ -101,6 +102,8 @@ BEGIN
 						[loclist] = CAST(N'<M>' + REPLACE(DurationBreakdown,  N',' , N'</M><M>') + N'</M>' AS XML)
 					FROM @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_CaptureTimes t WITH (NOLOCK)
 					WHERE t.RunWasSuccessful = 1
+						--TODO: may revisit this filter (only successful runs) in the future. For now, it
+						--makes it easier to reason about what we can expect to be true about the run of the Collector.
 					AND t.SPIDCaptureTime BETWEEN @StartTime AND @EndTime
 				) ss
 					CROSS APPLY loclist.nodes(N'/M') Split(a)

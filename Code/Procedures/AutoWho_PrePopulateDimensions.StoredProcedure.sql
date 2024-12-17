@@ -63,24 +63,41 @@ BEGIN
 	SET @lv__nullint = -929;				--ditto, used a strange/random number rather than -999, so there is even less of a chance of 
 	SET @lv__nullsmallint = -929;			-- overlapping with some special system value
 
-	INSERT INTO @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimCommand 
-		(command, TimeAdded)
-	SELECT r.command, GETDATE()
-	FROM 
-		(SELECT DISTINCT command = ISNULL(r.command,@lv__nullstring)
-		FROM sys.dm_exec_requests r) r
+	INSERT INTO @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimCommand (command)
+	SELECT r.command
+	FROM (
+		SELECT 
+			DISTINCT 
+			command = ISNULL(r.command,@lv__nullstring)
+		FROM sys.dm_exec_requests r
+	) r
 	WHERE NOT EXISTS (
 		SELECT * FROM @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimCommand dc
 		WHERE dc.command = r.command
 	);
 
-	INSERT INTO @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimConnectionAttribute 
-		(net_transport, protocol_type, protocol_version, endpoint_id,
-		node_affinity, net_packet_size, encrypt_option, auth_scheme, TimeAdded)
-	SELECT net_transport, protocol_type, protocol_version, endpoint_id,
-		node_affinity, net_packet_size, encrypt_option, auth_scheme, GETDATE()
+	INSERT INTO @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimConnectionAttribute (
+		net_transport, 
+		protocol_type, 
+		protocol_version, 
+		endpoint_id,
+		node_affinity, 
+		net_packet_size, 
+		encrypt_option, 
+		auth_scheme
+	)
+	SELECT 
+		net_transport, 
+		protocol_type, 
+		protocol_version, 
+		endpoint_id,
+		node_affinity, 
+		net_packet_size, 
+		encrypt_option, 
+		auth_scheme
 	FROM (
-		SELECT DISTINCT 
+		SELECT 
+			DISTINCT 
 			net_transport = ISNULL(c.net_transport,@lv__nullstring), 
 			protocol_type = ISNULL(c.protocol_type,@lv__nullstring), 
 			protocol_version = ISNULL(c.protocol_version,@lv__nullint), 
@@ -92,7 +109,8 @@ BEGIN
 		FROM sys.dm_exec_connections c
 	) c
 	WHERE NOT EXISTS (
-		SELECT * FROM @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimConnectionAttribute dca
+		SELECT *
+		FROM @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimConnectionAttribute dca
 		WHERE dca.net_transport = c.net_transport
 		AND dca.protocol_type = c.protocol_type
 		AND dca.protocol_version = c.protocol_version
@@ -103,8 +121,10 @@ BEGIN
 		AND dca.auth_scheme = c.auth_scheme
 	);
 
-	INSERT INTO @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimLoginName
-		(login_name, original_login_name)
+	INSERT INTO @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimLoginName (
+		login_name, 
+		original_login_name
+	)
 	SELECT s.login_name, s.original_login_name
 	FROM (
 		SELECT DISTINCT 
@@ -113,14 +133,21 @@ BEGIN
 		FROM sys.dm_exec_sessions s
 	) s
 	WHERE NOT EXISTS (
-		SELECT * FROM @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimLoginName dln
+		SELECT *
+		FROM @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimLoginName dln
 		WHERE dln.login_name = s.login_name
 		AND dln.original_login_name = s.original_login_name
 	);
 
-	INSERT INTO @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimNetAddress
-		(client_net_address, local_net_address, local_tcp_port, TimeAdded)
-	SELECT c.client_net_address, c.local_net_address, c.local_tcp_port, GETDATE()
+	INSERT INTO @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimNetAddress (
+		client_net_address, 
+		local_net_address, 
+		local_tcp_port
+	)
+	SELECT 
+		c.client_net_address, 
+		c.local_net_address, 
+		c.local_tcp_port
 	FROM (
 		SELECT DISTINCT 
 			client_net_address = ISNULL(c.client_net_address,@lv__nullstring), 
@@ -129,20 +156,33 @@ BEGIN
 		FROM sys.dm_exec_connections c
 	) c
 	WHERE NOT EXISTS (
-		SELECT * FROM @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimNetAddress dna
+		SELECT *
+		FROM @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimNetAddress dna
 		WHERE dna.client_net_address = c.client_net_address
-		--b/c of dynamic ports, moved to SAR table: AND dna.client_tcp_port = c.client_tcp_port
+		--b/c of client ports are ephemeral, moved to SAR table: AND dna.client_tcp_port = c.client_tcp_port
 		AND dna.local_net_address = c.local_net_address
 		AND dna.local_tcp_port = c.local_tcp_port
 	);
 
-	INSERT INTO @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimSessionAttribute
-		(host_name, program_name, client_version, client_interface_name,
-		endpoint_id, transaction_isolation_level, deadlock_priority, group_id,
-		TimeAdded)
-	SELECT s.host_name, s.program_name, s.client_version, s.client_interface_name,
-		s.endpoint_id, s.transaction_isolation_level, s.deadlock_priority, s.group_id,
-		GETDATE()
+	INSERT INTO @@CHIRHO_SCHEMA_OBJECTS@@.AutoWho_DimSessionAttribute (
+		host_name,
+		program_name,
+		client_version,
+		client_interface_name,
+		endpoint_id,
+		transaction_isolation_level,
+		deadlock_priority,
+		group_id
+	)
+	SELECT 
+		s.host_name, 
+		s.program_name, 
+		s.client_version, 
+		s.client_interface_name,
+		s.endpoint_id, 
+		s.transaction_isolation_level, 
+		s.deadlock_priority, 
+		s.group_id
 	FROM (
 		SELECT DISTINCT 
 			host_name = ISNULL(s.host_name, @lv__nullstring), 
