@@ -70,7 +70,7 @@ PRINT ISNULL(@lmsg, N'<null>');
 	@SPID				INT				= NULL,
 	@SearchByBoth		NCHAR(1)		= N'N',		-- If both are specified, user must tell us that we can use either to find the trace
 													-- We default this to "N" because of the possibility of accidentally stopping the
-													-- wrong trace. For example, if the trace handle isn't found, but a trace *is*
+													-- wrong trace. For example, if the trace handle is not found, but a trace *is*
 													-- found indirectly (via CoreXR_Traces & a SPID #), how do we know the sys.traces
 													-- trace is the one we really are to stop? So there is an element of uncertainty
 													-- here that we need to user to agree upon.
